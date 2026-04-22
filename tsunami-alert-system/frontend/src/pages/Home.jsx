@@ -17,16 +17,8 @@ export default function Home() {
   const { requestAndRegister, status: pushStatus } = usePushNotifications({ pos });
   const { lastPush } = useAlertStore();
   const [history, setHistory] = useState([]);
-  const [fileZones, setFileZones] = useState(null);
   const [selected, setSelected] = useState(null);
   const nav = useNavigate();
-
-  useEffect(() => {
-    fetch("/impact_zones.geojson")
-      .then((r) => (r.ok ? r.json() : { type: "FeatureCollection", features: [] }))
-      .then(setFileZones)
-      .catch(() => setFileZones({ type: "FeatureCollection", features: [] }));
-  }, []);
 
   useEffect(() => {
     if (activeAlerts?.length) {
@@ -38,13 +30,13 @@ export default function Home() {
     }
   }, [activeAlerts]);
 
-  const route = useMemo(
-    () =>
-      pos
-        ? buildHeuristicRoute(pos, { lat: pos.lat + 0.1, lng: pos.lng + 0.05 })
-        : null,
-    [pos]
-  );
+  const hasLiveAlert =
+    Array.isArray(activeAlerts) && activeAlerts.some((a) => a && a.is_active !== false);
+
+  const route = useMemo(() => {
+    if (!pos || !hasLiveAlert) return null;
+    return buildHeuristicRoute(pos, { lat: pos.lat + 0.1, lng: pos.lng + 0.05 });
+  }, [pos, hasLiveAlert]);
 
   const banner = useMemo(() => {
     const top = activeAlerts?.[0];
@@ -77,7 +69,7 @@ export default function Home() {
           <AlertMap
             pos={pos}
             activeAlerts={activeAlerts}
-            impactGeojson={fileZones}
+            impactGeojson={null}
             routeGeojson={selected ? null : route}
           />
         </div>

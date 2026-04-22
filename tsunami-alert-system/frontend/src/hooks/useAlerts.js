@@ -15,6 +15,7 @@ export function useAlerts() {
         setActiveAlerts(a);
       } catch (e) {
         console.warn("alerts poll", e);
+        setActiveAlerts([]);
       }
     };
     load();

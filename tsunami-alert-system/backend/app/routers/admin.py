@@ -55,13 +55,13 @@ def simulate_event(
     # After gate: real detection had DART, or we force a demo (classify with confirmation)
     dart_for_classify = det_passed or body.force_trigger
 
-    impact_str = geo_utils.impact_polygon_geojson_around(
-        body.lng, body.lat, radius_deg=3.0
+    r_km = geo_utils.impact_radius_km_for_magnitude(body.magnitude)
+    impact_str = geo_utils.impact_zone_geojson_for_magnitude(
+        body.lng, body.lat, body.magnitude
     )
     poly = geo_utils.from_geojson_to_geom(json.loads(impact_str))
-    d_km = geo_utils.distance_km(
-        body.lng, body.lat, body.lng + 0.5, body.lat + 0.5
-    )
+    # Characteristic path length for ETA heuristic (scales with zone size, not a point forecast)
+    d_km = r_km
     level = alert_processor.classify_alert(
         body.magnitude, d_km, dart_confirmed=bool(dart_for_classify)
     )

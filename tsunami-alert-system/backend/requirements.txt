@@ -9,6 +9,7 @@ httpx==0.28.0
 celery[redis]==5.4.0
 redis==5.2.0
 shapely==2.0.6
+pyproj==3.7.0
 python-multipart==0.0.17
 alembic==1.14.0
 pytest==8.3.3

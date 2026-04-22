@@ -1,14 +1,25 @@
 import { useEffect } from "react";
-
-const SRC = "evac-route";
-const LAYER = "evac-route-line";
+import { removeEvacuationRouteFromMap, EVAC_SRC as SRC, EVAC_LAYER as LAYER } from "./mapEvacuationUtils";
 
 /**
  * Renders a GeoJSON LineString (A* or heuristic) on the map.
  */
+function isValidLineString(geo) {
+  return (
+    geo &&
+    geo.type === "LineString" &&
+    Array.isArray(geo.coordinates) &&
+    geo.coordinates.length >= 2
+  );
+}
+
 export default function EvacuationRoute({ map, routeGeojson }) {
   useEffect(() => {
-    if (!map || !routeGeojson) return;
+    if (!map) return;
+    if (!isValidLineString(routeGeojson)) {
+      removeEvacuationRouteFromMap(map);
+      return;
+    }
     if (!map.getSource(SRC)) {
       map.addSource(SRC, { type: "geojson", data: routeGeojson });
       map.addLayer({
@@ -21,6 +32,9 @@ export default function EvacuationRoute({ map, routeGeojson }) {
     } else {
       map.getSource(SRC).setData(routeGeojson);
     }
+    return () => {
+      removeEvacuationRouteFromMap(map);
+    };
   }, [map, routeGeojson]);
   return null;
 }

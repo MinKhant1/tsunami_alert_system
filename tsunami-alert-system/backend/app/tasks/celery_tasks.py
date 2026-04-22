@@ -75,8 +75,9 @@ def process_seismic_for_alerts() -> dict:
             mag = float(ev.magnitude)
             pt = to_shape(ev.epicenter)
             lng, lat = float(pt.x), float(pt.y)
-            impact_str = geo_utils.impact_polygon_geojson_around(lng, lat, 3.0)
-            d_km = geo_utils.distance_km(lng, lat, lng + 0.5, lat + 0.5)
+            r_km = geo_utils.impact_radius_km_for_magnitude(mag)
+            impact_str = geo_utils.impact_zone_geojson_for_magnitude(lng, lat, mag)
+            d_km = r_km
             ok_dart = data_ingestion.check_dart_anomaly_sync(lng, lat, 30)
             level = alert_processor.classify_alert(
                 mag, d_km, dart_confirmed=ok_dart

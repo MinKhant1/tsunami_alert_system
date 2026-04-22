@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import ImpactZoneLayer from "./ImpactZoneLayer";
 import UserMarker from "./UserMarker";
 import EvacuationRoute from "./EvacuationRoute";
+import { removeEvacuationRouteFromMap } from "./mapEvacuationUtils";
 import { getMapContext } from "./mapConfig";
 
 const CENTER = [80, 10];
@@ -62,6 +63,12 @@ export default function AlertMap({ pos, activeAlerts, routeGeojson, impactGeojso
     map.current.easeTo({ center: [pos.lng, pos.lat], duration: 1200, essential: true });
   }, [ready, pos]);
 
+  useLayoutEffect(() => {
+    if (!ready || !map.current) return;
+    if (routeGeojson) return;
+    removeEvacuationRouteFromMap(map.current);
+  }, [ready, routeGeojson]);
+
   return (
     <div className="relative w-full h-[50vh] min-h-[400px] max-h-[720px] rounded-lg overflow-hidden border border-slate-800 bg-slate-900/50">
       {mapError && (
@@ -79,8 +86,8 @@ export default function AlertMap({ pos, activeAlerts, routeGeojson, impactGeojso
         />
       )}
       {ready && pos && <UserMarker map={map.current} pos={pos} mapLib={M} />}
-      {ready && routeGeojson && (
-        <EvacuationRoute map={map.current} routeGeojson={routeGeojson} />
+      {ready && map.current && (
+        <EvacuationRoute map={map.current} routeGeojson={routeGeojson ?? null} />
       )}
     </div>
   );

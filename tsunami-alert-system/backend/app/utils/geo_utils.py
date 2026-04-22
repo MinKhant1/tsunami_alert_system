@@ -7,7 +7,11 @@ from math import asin, cos, radians, sin, sqrt
 from typing import Any, Optional
 
 from geoalchemy2.shape import to_shape, from_shape
-from shapely.geometry import box, mapping, shape as shp_shape, Polygon as ShapelyPolygon
+from pyproj import Geod
+from shapely.geometry import mapping, shape as shp_shape
+
+# WGS84; used for true-distance circles on the ellipsoid (replaces naïve lon/lat degree boxes)
+_GEOD: Geod = Geod(ellps="WGS84")
 
 
 def point_to_wkt(lat: float, lng: float) -> str:
@@ -18,20 +22,89 @@ def geojson_point(lng: float, lat: float) -> dict:
     return {"type": "Point", "coordinates": [lng, lat]}
 
 
+def impact_radius_km_for_magnitude(magnitude: float) -> float:
+    """
+    Heuristic *open-ocean / advisory* footprint radius in km, geodesic.
+
+    This is *not* an inundation map or a PTWC-style full basin polygon; it scales
+    the influence zone with source strength so the displayed zone matches intuition
+    (larger M → wider credible ocean warning footprint). Tuned, capped, and
+    described for hazard communication rather than a physics ROMS model.
+    """
+    m = max(4.0, min(10.0, float(magnitude)))
+    # Exponential in M: ~90 km at M5, ~360 at M7, ~1 450 at M9, cap at 2 500 km
+    r = 45.0 * (2.0 ** (m - 5.0))
+    return min(2500.0, max(60.0, r))
+
+
+def _geodesic_ring_coords(
+    center_lng: float, center_lat: float, radius_km: float, n_segments: int
+) -> list[list[float]]:
+    """
+    One closed ring: vertex positions on a geodesic (great-circle) circle.
+    WGS84 forward azimuth, equal arc spacing — accurate vs degree boxes in lat.
+    """
+    n = int(max(16, min(128, n_segments)))
+    radius_m = max(1.0, float(radius_km)) * 1000.0
+    ring: list[list[float]] = []
+    for i in range(n):
+        az = 360.0 * i / n
+        plon, plat, _ = _GEOD.fwd(center_lng, center_lat, az, radius_m)
+        ring.append([float(plon), float(plat)])
+    if ring[0] != ring[-1]:
+        ring.append(ring[0])
+    return ring
+
+
+def geodesic_circle_geojson(
+    center_lng: float,
+    center_lat: float,
+    radius_km: float,
+    n_segments: int = 64,
+) -> dict[str, Any]:
+    """
+    A single Polygon: geodesic circle in EPSG:4326 (GeoJSON with lon/lat).
+    """
+    ring = _geodesic_ring_coords(center_lng, center_lat, radius_km, n_segments)
+    return {"type": "Polygon", "coordinates": [ring]}
+
+
+def impact_zone_geojson_geodesic(
+    center_lng: float,
+    center_lat: float,
+    radius_km: float,
+    n_segments: int = 64,
+) -> str:
+    """Build geodesic circle as GeoJSON string (for PostGIS / WKT import)."""
+    d = geodesic_circle_geojson(center_lng, center_lat, radius_km, n_segments)
+    return json.dumps(d)
+
+
+def impact_zone_geojson_for_magnitude(
+    center_lng: float,
+    center_lat: float,
+    magnitude: float,
+    n_segments: int = 64,
+) -> str:
+    """
+    Geodesic impact / advisory zone using magnitude → radius (km) heuristic.
+    """
+    r = impact_radius_km_for_magnitude(magnitude)
+    return impact_zone_geojson_geodesic(center_lng, center_lat, r, n_segments)
+
+
 def impact_polygon_geojson_around(
     center_lng: float,
     center_lat: float,
-    radius_deg: float = 5.0,
+    radius_km: float = 200.0,
 ) -> str:
-    """Build a simple square buffer polygon in WGS84 as GeoJSON string for SQL."""
-    minx, miny, maxx, maxy = (
-        center_lng - radius_deg,
-        center_lat - radius_deg,
-        center_lng + radius_deg,
-        center_lat + radius_deg,
-    )
-    poly: ShapelyPolygon = box(minx, miny, maxx, maxy)
-    return json.dumps(mapping(poly))
+    """
+    Backward-compatible name: the third argument is **kilometers** (geodesic), not degrees.
+
+    Prefer :func:`impact_zone_geojson_for_magnitude` for seismic events, or
+    :func:`impact_zone_geojson_geodesic` for a fixed radius.
+    """
+    return impact_zone_geojson_geodesic(center_lng, center_lat, float(radius_km))
 
 
 def geometry_to_geojson(geom) -> Optional[dict]:
