@@ -1,0 +1,37 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "level": "WATCH", "name": "Bay of Bengal" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [78, 3],
+            [100, 3],
+            [100, 20],
+            [78, 20],
+            [78, 3]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "level": "ADVISORY", "name": "Sunda shelf" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [95, -12],
+            [110, -12],
+            [110, 5],
+            [95, 5],
+            [95, -12]
+          ]
+        ]
+      }
+    }
+  ]
+}

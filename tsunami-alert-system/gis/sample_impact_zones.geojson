@@ -1,0 +1,21 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "level": "WATCH", "name": "Sample zone" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [90, 5],
+            [100, 5],
+            [100, 10],
+            [90, 10],
+            [90, 5]
+          ]
+        ]
+      }
+    }
+  ]
+}
