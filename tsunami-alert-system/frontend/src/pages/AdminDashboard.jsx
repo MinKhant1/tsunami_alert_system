@@ -94,7 +94,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="p-4 space-y-4 max-w-4xl w-full min-w-0">
+    <div className="p-4 space-y-4 w-full min-w-0">
       <h1 className="text-lg font-semibold text-slate-100">Admin — simulation & feeds</h1>
       <StatsPanel
         activeCount={actives.length}
@@ -163,7 +163,7 @@ export default function AdminDashboard() {
         {consent === "denied" && (
           <p className="text-slate-500 text-xs">Allow location to preview your position and evacuation line here.</p>
         )}
-        <div className="min-h-[400px] w-full">
+        <div className="h-[60vh] min-h-[400px] w-full">
           <AlertMap pos={pos} activeAlerts={actives} impactGeojson={null} routeGeojson={evacRoute} />
         </div>
       </div>
