@@ -4,7 +4,9 @@ import EvacuationRoute from "../components/Map/EvacuationRoute";
 import { getMapContext } from "../components/Map/mapConfig";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { useEvacuationRoute } from "../hooks/useEvacuationRoute";
+import { useAlerts } from "../hooks/useAlerts";
 import { DEMO_EVAC_FROM } from "../lib/evacuationRouting";
+import { pointInGeoJSONGeometry } from "../lib/pointInGeoJSON";
 
 /**
  * Full-screen driving route to inland rally (same engine as Home / Admin preview).
@@ -12,7 +14,21 @@ import { DEMO_EVAC_FROM } from "../lib/evacuationRouting";
  */
 export default function EvacuationPage() {
   const { pos } = useGeolocation();
-  const route = useEvacuationRoute(pos, true, { useDemoFallback: true });
+  const activeAlerts = useAlerts();
+
+  const hasLiveAlert = Array.isArray(activeAlerts) && activeAlerts.some((a) => a && a.is_active !== false);
+
+  const isAffected = useMemo(() => {
+    if (!pos) return false;
+    const alertsWithZones = Array.isArray(activeAlerts) ? activeAlerts.filter((a) => a?.impact_zone_geojson) : [];
+    if (alertsWithZones.length === 0) return true;
+    return alertsWithZones.some((a) => pointInGeoJSONGeometry([pos.lng, pos.lat], a.impact_zone_geojson));
+  }, [pos, activeAlerts]);
+
+  // If we have GPS, only draw when inside impact zone. If GPS is missing, keep demo route behavior.
+  const shouldDrawRoute = Boolean(hasLiveAlert && (pos ? isAffected : true));
+
+  const route = useEvacuationRoute(pos, shouldDrawRoute, { useDemoFallback: true });
 
   const ctx = useMemo(() => getMapContext(), []);
   const { lib: M, style } = ctx;

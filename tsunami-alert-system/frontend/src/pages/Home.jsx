@@ -11,6 +11,7 @@ import { useAlerts } from "../hooks/useAlerts";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { useAlertStore } from "../store/alertStore";
 import { fetchAlertById } from "../services/alertService";
+import { pointInGeoJSONGeometry } from "../lib/pointInGeoJSON";
 
 export default function Home() {
   const activeAlerts = useAlerts();
@@ -34,7 +35,16 @@ export default function Home() {
   const hasLiveAlert =
     Array.isArray(activeAlerts) && activeAlerts.some((a) => a && a.is_active !== false);
 
-  const route = useEvacuationRoute(pos, Boolean(pos && hasLiveAlert));
+  // Only draw the evacuation route when the tsunami impact zone includes the user's current position.
+  // If we can't compute impact zones (missing polygons), fall back to the legacy behavior.
+  const isAffected = useMemo(() => {
+    if (!pos) return false;
+    const alertsWithZones = Array.isArray(activeAlerts) ? activeAlerts.filter((a) => a?.impact_zone_geojson) : [];
+    if (alertsWithZones.length === 0) return true;
+    return alertsWithZones.some((a) => pointInGeoJSONGeometry([pos.lng, pos.lat], a.impact_zone_geojson));
+  }, [pos, activeAlerts]);
+
+  const route = useEvacuationRoute(pos, Boolean(pos && hasLiveAlert && isAffected));
 
   const banner = useMemo(() => {
     const top = activeAlerts?.[0];

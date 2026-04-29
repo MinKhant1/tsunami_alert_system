@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
 import { postSimulateEvent, fetchActiveAlerts, deleteActiveAlert } from "../services/alertService";
 import StatsPanel from "../components/Dashboard/StatsPanel";
@@ -7,6 +7,7 @@ import TideGauge from "../components/Dashboard/TideGauge";
 import AlertMap from "../components/Map/AlertMap";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { useEvacuationRoute } from "../hooks/useEvacuationRoute";
+import { pointInGeoJSONGeometry } from "../lib/pointInGeoJSON";
 
 function simErrorShape(err) {
   if (!axios.isAxiosError(err)) {
@@ -39,7 +40,16 @@ export default function AdminDashboard() {
 
   const { pos, error: geoError, consent } = useGeolocation();
   const hasActiveSim = actives.length > 0;
-  const evacRoute = useEvacuationRoute(pos, Boolean(pos && hasActiveSim));
+  // Only draw the evacuation route when the user's current position is inside the active alert impact zone.
+  // If impact zones are missing, fall back to legacy behavior.
+  const isAffected = useMemo(() => {
+    if (!pos) return false;
+    const alertsWithZones = Array.isArray(actives) ? actives.filter((a) => a?.impact_zone_geojson) : [];
+    if (alertsWithZones.length === 0) return true;
+    return alertsWithZones.some((a) => pointInGeoJSONGeometry([pos.lng, pos.lat], a.impact_zone_geojson));
+  }, [pos, actives]);
+
+  const evacRoute = useEvacuationRoute(pos, Boolean(pos && hasActiveSim && isAffected));
 
   const loadAlerts = useCallback(() => {
     setAlertsError(null);
