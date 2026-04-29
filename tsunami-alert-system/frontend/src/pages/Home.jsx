@@ -6,6 +6,7 @@ import AlertCard from "../components/Alert/AlertCard";
 import AlertHistory from "../components/Alert/AlertHistory";
 import Sidebar from "../components/UI/Sidebar";
 import { useGeolocation } from "../hooks/useGeolocation";
+import { useEvacuationRoute } from "../hooks/useEvacuationRoute";
 import { useAlerts } from "../hooks/useAlerts";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { useAlertStore } from "../store/alertStore";
@@ -33,10 +34,7 @@ export default function Home() {
   const hasLiveAlert =
     Array.isArray(activeAlerts) && activeAlerts.some((a) => a && a.is_active !== false);
 
-  const route = useMemo(() => {
-    if (!pos || !hasLiveAlert) return null;
-    return buildHeuristicRoute(pos, { lat: pos.lat + 0.1, lng: pos.lng + 0.05 });
-  }, [pos, hasLiveAlert]);
+  const route = useEvacuationRoute(pos, Boolean(pos && hasLiveAlert));
 
   const banner = useMemo(() => {
     const top = activeAlerts?.[0];
@@ -106,18 +104,4 @@ export default function Home() {
       </Sidebar>
     </div>
   );
-}
-
-/**
- * Simplified A*: straight-line to safe point; expand to grid graph in production.
- */
-function buildHeuristicRoute(a, b) {
-  return {
-    type: "LineString",
-    coordinates: [
-      [a.lng, a.lat],
-      [(a.lng + b.lng) / 2, (a.lat + b.lat) / 2 + 0.01],
-      [b.lng, b.lat],
-    ],
-  };
 }

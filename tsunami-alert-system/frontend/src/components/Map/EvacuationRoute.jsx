@@ -1,9 +1,7 @@
 import { useEffect } from "react";
 import { removeEvacuationRouteFromMap, EVAC_SRC as SRC, EVAC_LAYER as LAYER } from "./mapEvacuationUtils";
 
-/**
- * Renders a GeoJSON LineString (A* or heuristic) on the map.
- */
+/** Renders a GeoJSON LineString (driving/walking directions polyline) on the map. */
 function isValidLineString(geo) {
   return (
     geo &&

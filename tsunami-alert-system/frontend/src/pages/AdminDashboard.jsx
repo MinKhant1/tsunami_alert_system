@@ -4,6 +4,9 @@ import { postSimulateEvent, fetchActiveAlerts, deleteActiveAlert } from "../serv
 import StatsPanel from "../components/Dashboard/StatsPanel";
 import SeismicFeed from "../components/Dashboard/SeismicFeed";
 import TideGauge from "../components/Dashboard/TideGauge";
+import AlertMap from "../components/Map/AlertMap";
+import { useGeolocation } from "../hooks/useGeolocation";
+import { useEvacuationRoute } from "../hooks/useEvacuationRoute";
 
 function simErrorShape(err) {
   if (!axios.isAxiosError(err)) {
@@ -33,6 +36,10 @@ export default function AdminDashboard() {
   const [expanded, setExpanded] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [alertsError, setAlertsError] = useState(null);
+
+  const { pos, error: geoError, consent } = useGeolocation();
+  const hasActiveSim = actives.length > 0;
+  const evacRoute = useEvacuationRoute(pos, Boolean(pos && hasActiveSim));
 
   const loadAlerts = useCallback(() => {
     setAlertsError(null);
@@ -145,6 +152,22 @@ export default function AdminDashboard() {
           </ul>
         )}
       </div>
+      <div className="rounded border border-slate-800/70 p-3 space-y-2 text-sm">
+        <h2 className="text-slate-300 font-medium">Map preview — evacuation matches Home & /evac</h2>
+        <p className="text-slate-500 text-xs">
+          With browser location enabled and an active alert, the cyan line is the same road-backed route as the
+          home map and evacuation page (Mapbox Directions if <code className="text-slate-400">VITE_MAPBOX_TOKEN</code>{" "}
+          is set, otherwise OSRM foot routing).
+        </p>
+        {geoError && <p className="text-amber-400/80 text-xs">{geoError}</p>}
+        {consent === "denied" && (
+          <p className="text-slate-500 text-xs">Allow location to preview your position and evacuation line here.</p>
+        )}
+        <div className="min-h-[400px] w-full">
+          <AlertMap pos={pos} activeAlerts={actives} impactGeojson={null} routeGeojson={evacRoute} />
+        </div>
+      </div>
+
       <div className="grid md:grid-cols-2 gap-4">
         <div className="rounded border border-slate-800/70 p-3 space-y-3 text-sm">
           <p className="text-slate-400">Simulate tsunami-sourcing quake (POST /admin/simulate-event)</p>

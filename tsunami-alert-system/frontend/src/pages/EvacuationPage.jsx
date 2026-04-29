@@ -1,13 +1,19 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import EvacuationRoute from "../components/Map/EvacuationRoute";
 import { getMapContext } from "../components/Map/mapConfig";
+import { useGeolocation } from "../hooks/useGeolocation";
+import { useEvacuationRoute } from "../hooks/useEvacuationRoute";
+import { DEMO_EVAC_FROM } from "../lib/evacuationRouting";
 
 /**
- * Full-screen path to a safe rally point. Demo polyline; swap for A* on a road/cost graph.
- * Same map backend as home: Mapbox if token, else MapLibre + Carto.
+ * Full-screen driving route to inland rally (same engine as Home / Admin preview).
+ * Mapbox walking Directions with token, else OSRM foot profile (snap to paths/roads).
  */
 export default function EvacuationPage() {
+  const { pos } = useGeolocation();
+  const route = useEvacuationRoute(pos, true, { useDemoFallback: true });
+
   const ctx = useMemo(() => getMapContext(), []);
   const { lib: M, style } = ctx;
   const cont = useRef(null);
@@ -19,8 +25,8 @@ export default function EvacuationPage() {
     const m = new M.Map({
       container: cont.current,
       style,
-      center: [80, 10],
-      zoom: 5,
+      center: [DEMO_EVAC_FROM.lng, DEMO_EVAC_FROM.lat],
+      zoom: 10,
     });
     m.addControl(new M.NavigationControl());
     m.on("load", () => {
@@ -37,39 +43,24 @@ export default function EvacuationPage() {
     };
   }, [M, style]);
 
-  const [pos, setPos] = useState(null);
   useEffect(() => {
-    if (!navigator?.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (p) => setPos({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      () => {}
-    );
-  }, []);
-
-  const route = useMemo(() => {
+    if (!ready || !map.current) return;
     if (pos) {
-      return {
-        type: "LineString",
-        coordinates: aStarPolyline(
-          { lng: pos.lng, lat: pos.lat },
-          { lng: pos.lng + 0.4, lat: pos.lat + 0.2 }
-        ),
-      };
+      map.current.easeTo({ center: [pos.lng, pos.lat], zoom: 12, duration: 900, essential: true });
+    } else {
+      map.current.easeTo({
+        center: [DEMO_EVAC_FROM.lng, DEMO_EVAC_FROM.lat],
+        zoom: 10,
+        duration: 0,
+        essential: true,
+      });
     }
-    return {
-      type: "LineString",
-      coordinates: [
-        [80, 5],
-        [80.1, 5.2],
-        [80.2, 5.5],
-      ],
-    };
-  }, [pos]);
+  }, [ready, pos]);
 
   return (
     <div className="flex w-full min-w-0 flex-1 min-h-0 flex-col h-[calc(100vh-48px)]">
       <div className="flex items-center justify-between p-2 border-b border-slate-800/80 text-sm">
-        <p className="text-slate-200 font-medium">Evacuation (demo route to higher ground)</p>
+        <p className="text-slate-200 font-medium">Evacuation — road route to inland rally</p>
         <Link to="/" className="text-sky-400 hover:underline">
           Back
         </Link>
@@ -78,18 +69,4 @@ export default function EvacuationPage() {
       {ready && map.current && <EvacuationRoute map={map.current} routeGeojson={route} />}
     </div>
   );
-}
-
-/**
- * Simplified A* over a 4x4 local grid: neighbor expansion toward goal.
- * Returns a polyline in [lng,lat] pairs.
- */
-function aStarPolyline(start, goal) {
-  const nodes = [
-    [start.lng, start.lat],
-    [(start.lng * 2 + goal.lng) / 3 + 0.02, (start.lat * 2 + goal.lat) / 3 - 0.01],
-    [(start.lng + goal.lng * 2) / 3 - 0.01, (start.lat + goal.lat * 2) / 3 + 0.02],
-    [goal.lng, goal.lat],
-  ];
-  return nodes;
 }
