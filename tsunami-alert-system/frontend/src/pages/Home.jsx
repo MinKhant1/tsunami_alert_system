@@ -53,17 +53,10 @@ export default function Home() {
   }, [activeAlerts, lastPush]);
 
   return (
-    <div className="flex flex-1 min-h-0 h-[calc(100vh-48px)]">
-      <div className="flex-1 min-w-0 min-h-0 flex flex-col p-2 gap-2">
-        {banner && (
-          <AlertBanner
-            level={banner.level}
-            text={banner.text}
-            onOpen={() => nav("/evac")}
-          />
-        )}
-        {error && <p className="text-amber-400/80 text-sm">{error}</p>}
-        <div className="flex-1 min-h-0 w-full">
+    <div className="flex h-full min-h-0">
+      <div className="relative flex-1 min-w-0 min-h-0 p-2">
+        {/* Full-height map (overlays render on top so they don't steal vertical space) */}
+        <div className="absolute inset-0">
           <AlertMap
             pos={pos}
             activeAlerts={activeAlerts}
@@ -71,36 +64,60 @@ export default function Home() {
             routeGeojson={selected ? null : route}
           />
         </div>
-        {consent === "denied" && (
-          <p className="text-xs text-slate-500">
-            Location was denied. Enable location in the browser to appear on the map and receive
-            targeted information.
-          </p>
-        )}
-        <div className="flex gap-2 items-center text-xs text-slate-500">
-          <span>User id: {userIdRef.current || "—"}</span>
-          <span>FCM: {pushStatus}</span>
-          <button
-            type="button"
-            onClick={requestAndRegister}
-            className="px-2 py-1 border border-slate-700 rounded text-slate-300"
-          >
-            Enable push
-          </button>
+
+        {/* Top overlays */}
+        <div className="absolute top-2 left-2 right-2 z-10 space-y-2">
+          {banner && (
+            <AlertBanner level={banner.level} text={banner.text} onOpen={() => nav("/evac")} />
+          )}
+          {error && <p className="text-amber-400/80 text-sm">{error}</p>}
+        </div>
+
+        {/* Bottom overlays */}
+        <div className="absolute bottom-2 left-2 right-2 z-10 space-y-2">
+          {consent === "denied" && (
+            <p className="text-xs text-slate-500 pointer-events-auto">
+              Location was denied. Enable location in the browser to appear on the map and receive targeted
+              information.
+            </p>
+          )}
+
+          <div className="flex gap-2 items-center text-xs text-slate-500 pointer-events-auto">
+            <span>User id: {userIdRef.current || "—"}</span>
+            <span>FCM: {pushStatus}</span>
+            <button
+              type="button"
+              onClick={requestAndRegister}
+              className="px-2 py-1 border border-slate-700 rounded text-slate-300"
+            >
+              Enable push
+            </button>
+          </div>
         </div>
       </div>
+
       <Sidebar title="Active alert">
-        {activeAlerts[0] ? <AlertCard alert={activeAlerts[0]} /> : <p className="text-slate-500">None</p>}
-        <h3 className="text-xs text-slate-500 pt-2">Session history</h3>
-        <AlertHistory
-          alerts={history}
-          onSelect={async (a) => {
-            setSelected(a);
-            const d = await fetchAlertById(a.id);
-            /* prefer fresh geometry */
-            console.log(d);
-          }}
-        />
+        <div className="flex flex-col h-full min-h-0 space-y-3">
+          <div className="shrink-0">
+            {activeAlerts[0] ? (
+              <AlertCard alert={activeAlerts[0]} />
+            ) : (
+              <p className="text-slate-500">None</p>
+            )}
+          </div>
+          <h3 className="text-xs text-slate-500 shrink-0">Session history</h3>
+          <div className="flex-1 min-h-0 overflow-auto pr-1">
+            <AlertHistory
+              alerts={history}
+              onSelect={async (a) => {
+                setSelected(a);
+                const d = await fetchAlertById(a.id);
+                /* prefer fresh geometry */
+                console.log(d);
+              }}
+            />
+          </div>
+        </div>
       </Sidebar>
     </div>
   );

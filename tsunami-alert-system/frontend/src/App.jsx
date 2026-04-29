@@ -9,11 +9,13 @@ export default function App() {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1 flex min-h-0">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/evac" element={<EvacuationPage />} />
-        </Routes>
+        <div className="flex-1 min-h-0">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/evac" element={<EvacuationPage />} />
+          </Routes>
+        </div>
       </main>
     </div>
   );

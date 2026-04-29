@@ -70,7 +70,7 @@ export default function AlertMap({ pos, activeAlerts, routeGeojson, impactGeojso
   }, [ready, routeGeojson]);
 
   return (
-    <div className="relative w-full h-[50vh] min-h-[400px] max-h-[720px] rounded-lg overflow-hidden border border-slate-800 bg-slate-900/50">
+    <div className="relative w-full h-full min-h-0 rounded-lg overflow-hidden border border-slate-800 bg-slate-900/50">
       {mapError && (
         <div className="absolute bottom-2 left-2 right-2 z-20 rounded border border-amber-500/50 bg-slate-950/95 p-2 text-xs text-amber-200">
           <p className="font-medium text-amber-100">Map error</p>
